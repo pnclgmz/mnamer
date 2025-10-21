@@ -8,6 +8,7 @@ from os.path import exists, expanduser, expandvars, getsize, splitdrive, splitex
 from pathlib import Path, PurePath
 from typing import Any, Callable, Iterator
 from unicodedata import normalize
+from unidecode import unidecode
 
 import requests_cache
 from requests.adapters import HTTPAdapter
@@ -335,146 +336,9 @@ def str_scenify(filename: str) -> str:
 
 
 def str_title_case(s: str) -> str:
-    """Attempts to intelligently apply title case transformations to strings."""
+    """Translates Unicode characters to their closest ASCII representation."""
 
     if not s:
         return s
-
-    lowercase_exceptions = {
-        "a",
-        "an",
-        "and",
-        "as",
-        "at",
-        "but",
-        "by",
-        "de",
-        "des",
-        "du",
-        "for",
-        "from",
-        "in",
-        "is",
-        "le",
-        "nor",
-        "of",
-        "on",
-        "or",
-        "the",
-        "to",
-        "un",
-        "une",
-        "with",
-        "via",
-    }
-    uppercase_exceptions = {
-        "i",
-        "ii",
-        "iii",
-        "iv",
-        "v",
-        "vi",
-        "vii",
-        "viii",
-        "ix",
-        "x",
-        "2d",
-        "3d",
-        "au",
-        "aka",
-        "atm",
-        "bbc",
-        "bff",
-        "cia",
-        "csi",
-        "dc",
-        "doa",
-        "espn",
-        "fbi",
-        "ira",
-        "jfk",
-        "lol",
-        "mlb",
-        "mlk",
-        "mtv",
-        "nba",
-        "nfl",
-        "nhl",
-        "nsfw",
-        "nyc",
-        "omg",
-        "pga",
-        "oj",
-        "rsvp",
-        "tnt",
-        "tv",
-        "ufc",
-        "ufo",
-        "uk",
-        "usa",
-        "vip",
-        "wtf",
-        "wwe",
-        "wwi",
-        "wwii",
-        "xxx",
-        "yolo",
-    }
-    padding_chars = ".- "
-    paren_chars = "[](){}<>{}"
-    punctuation_chars = paren_chars + "\"!?$,-.:;@_`'"
-    partition_chars: str = padding_chars + punctuation_chars
-    string_lower = s.lower()
-    string_length = len(s)
-
-    # uppercase first character
-    s = s.lower()
-    s = s[0].upper() + s[1:]
-
-    # uppercase characters after padding characters
-    for char in padding_chars:
-        for pos in findall(s, char):
-            if pos + 1 == string_length:
-                break
-            elif pos + 2 < string_length:
-                s = s[: pos + 1] + s[pos + 1].upper() + s[pos + 2 :]
-            else:
-                s = s[: pos + 1] + s[pos + 1].upper()
-
-    # uppercase characters inside parentheses
-    for char in paren_chars:
-        for pos in findall(s, char):
-            if pos > 0 and s[pos - 1] not in padding_chars:
-                continue
-            elif pos + 1 < string_length:
-                s = s[: pos + 1] + s[pos + 1].upper() + s[pos + 2 :]
-
-    # process lowercase transformations
-    for exception in lowercase_exceptions:
-        for pos in findall(string_lower, exception):
-            is_start = pos < 2
-            if is_start:
-                break
-            prev_char = string_lower[pos - 1]
-            is_left_partitioned = prev_char in padding_chars
-            word_length = len(exception)
-            ends = pos + word_length == string_length
-            next_char = "" if ends else string_lower[pos + word_length]
-            is_right_partitioned = not ends and next_char in padding_chars
-            if is_left_partitioned and is_right_partitioned:
-                s = s[:pos] + exception.lower() + s[pos + word_length :]
-
-    # process uppercase transformations
-    for exception in uppercase_exceptions:
-        for pos in findall(string_lower, exception):
-            is_start = pos == 0
-            prev_char = None if is_start else string_lower[pos - 1]  # type: ignore
-            is_left_partitioned = is_start or prev_char in partition_chars  # type: ignore
-            word_length = len(exception)
-            ends = pos + word_length == string_length
-            next_char = "" if ends else string_lower[pos + word_length]
-            is_right_partitioned = ends or next_char in partition_chars
-            if is_left_partitioned and is_right_partitioned:
-                s = s[:pos] + exception.upper() + s[pos + word_length :]
-
-    return s
+    else:
+        return unidecode(s)
